@@ -88,8 +88,6 @@ class Player(f.Entity):
         self.movement[0] = self.momentum[0]
         self.movement[1] = self.momentum[1]
 
-        print(self.movement[0])
-
         self.physics.move(self.movement, tiles)
 
     def render(self,):

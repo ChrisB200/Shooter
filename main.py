@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import data.scripts.framework as f
 from data.scripts.player import Player
 from data.scripts.camera import Camera
+from data.scripts.user_interface import Button, Menu, UIElement
 
 # Constants
 WIDTH, HEIGHT = 1920, 1080
@@ -58,6 +59,12 @@ class Game:
 
         # States
         self.currentState = PLAYING
+
+        # Menus
+        self.pauseMenu = Menu(0, 0, WIDTH, HEIGHT)
+        bg = UIElement(WIDTH//2-250, HEIGHT//2-250, 500, 500, {"bgColour": (255, 255, 255), "opacity": 5})
+        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, {"bgColour": (255, 0, 0), "text": "END"}, lambda: pygame.quit())
+        self.pauseMenu.add_elements(bg, end)
 
     def convert_cam(self, **kwargs):
         camObjects = []
@@ -145,6 +152,19 @@ class Game:
             else:
                 self.keyboard_events(event)
 
+    def paused_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == KEYBOARD.pause:
+                    if self.currentState == PAUSED:
+                        self.currentState = PLAYING
+                    else:
+                        self.currentState = PAUSED
+            self.pauseMenu.handle(event)
+
     def update(self):
         self.player.update([self.floor], self.axesx)
 
@@ -158,7 +178,9 @@ class Game:
             if self.currentState == MENU:
                 pass
             elif self.currentState == PAUSED:
-                self.playing_events()
+                self.paused_events()
+                self.pauseMenu.render(self.camera.display)
+                pygame.display.update()
             elif self.currentState == PLAYING:
                 self.update()
                 self.render()
