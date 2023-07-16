@@ -1,0 +1,12 @@
+Short Term
+1 - Create a universal text / button system
+2 - Add animations to player class
+3 - Optimise player class
+
+Animation System:
+- I need an animationData class that stores values such as speed, images etc.
+
+
+Long Term
+1 - different weapon types
+2 - melee weapons
