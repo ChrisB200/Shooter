@@ -29,6 +29,8 @@ MENU = 0
 PLAYING = 1
 PAUSED = 2
 
+JUMP_STRENGTH = -10
+
 #1024 768
 class Game:
     def __init__(self):
@@ -52,7 +54,7 @@ class Game:
         self.currentState = PLAYING
 
         # Camera
-        self.camera = Camera((WIDTH, HEIGHT), 2)
+        self.camera = Camera((1920, 1080), 2)
 
         # Menus
         self.pauseMenu = Menu(0, 0, WIDTH, HEIGHT)
@@ -64,8 +66,8 @@ class Game:
 
         # Assets
         self.assets = {
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur=12),
-            'player/run': Animation(load_images('entities/player/run'), img_dur=12),
+            'player/idle': Animation(load_images('entities/player/idle'), img_dur=6),
+            'player/run': Animation(load_images('entities/player/run'), img_dur=4),
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/slide': Animation(load_images('entities/player/slide')),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
@@ -75,10 +77,11 @@ class Game:
         self.player = Player(self, [0, 0], [8, 13], "player")
 
         # Map
-        self.floor = pygame.Rect(0, 340, 1200, 20)
+        self.floor = pygame.Rect(0, 100, 1000, 20)
 
         self.camera.set_target(self.player, (0, -50))
         self.camera.toggle_panning()
+        self.fps = 100
 
 
     def convert_cam(self, **kwargs):
@@ -102,17 +105,19 @@ class Game:
                self.player.directions["right"] = True
             if event.key == KEYBOARD.jump:
                 if self.player.airTimer < self.player.maxAirTimer:
-                    self.player.momentum[1] = -4.5
+                    self.player.momentum[1] = JUMP_STRENGTH
                 if self.player.currentJumps < self.player.totalJumps:
-                    self.player.momentum[1] = -4.5
+                    self.player.momentum[1] = JUMP_STRENGTH
                     self.player.currentJumps += 1
             if event.key == KEYBOARD.dash and self.player.isDashing == False and self.player.canDash == True and self.player.dashCooldown[2] != True:
-                self.player.momentum[0] = self.player.momentum[0] *self.player.dashStrength
+                self.player.momentum[0] = self.player.momentum[0] * self.player.dashStrength
                 self.player.isDashing = True
                 self.player.canDash = False
                 self.player.dashCooldown[2] = True
             if event.key == K_p:
-                self.camera.zoom(1)
+                self.fps = 10
+            if event.key == K_s:
+                self.fps = 60
         if event.type == pygame.KEYUP:
             if event.key == KEYBOARD.moveL:
                self.player.directions["left"] = False
@@ -143,9 +148,9 @@ class Game:
         if (event.type == pygame.JOYBUTTONDOWN):
             if event.button == CONTROLLER.jump:
                 if self.player.airTimer < self.player.maxAirTimer:
-                    self.player.momentum[1] = -5
+                    self.player.momentum[1] = JUMP_STRENGTH
                 if self.player.currentJumps < self.player.totalJumps:
-                    self.player.momentum[1] = -5
+                    self.player.momentum[1] = JUMP_STRENGTH
                     self.player.currentJumps += 1
             if event.button == CONTROLLER.dash and self.player.isDashing == False and self.player.canDash == True and self.player.dashCooldown[2] != True:
                 self.player.momentum[0] = self.player.momentum[0] *self.player.dashStrength
@@ -196,8 +201,8 @@ class Game:
         pygame.display.update()
 
     def run(self):
-        self.clock.tick(60)
         while True:
+            self.dt = self.clock.tick(60) / 1000.0
             if self.currentState == MENU:
                 pass
             elif self.currentState == PAUSED:

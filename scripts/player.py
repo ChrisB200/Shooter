@@ -8,18 +8,18 @@ class Player(f.Entity):
     def __init__(self, game, pos, size, tag):
         super().__init__(game, pos, size, tag)
         self.momentum = [0, 0] # [momentumX, momentumY]
-        self.strength = [0.25, 0.08] # [strengthX, strengthY]
-        self.cap = [2, 3] # [capX, capY]
+        self.strength = [1, 0.5] # [strengthX, strengthY]
+        self.cap = [6, 7] # [capX, capY]
         # Jump Data
         self.totalJumps = 2
         self.currentJumps = 0
         self.airTimer = 0
-        self.maxAirTimer = 15
+        self.maxAirTimer = 2
         self.isGrounded = False
         # Dash Data
         self.isDashing = False
         self.canDash = True
-        self.dashStrength = 3.5
+        self.dashStrength = 4.2
         self.dashCooldown = [25, 25, False] # [currentTimer, maxTimer, currentlyCounting]
 
         self.draw_pos = self.pos
@@ -29,6 +29,7 @@ class Player(f.Entity):
         return self.pos
 
     def update(self, tiles, axesx=1):
+        dt = self.game.clock.get_time() / 1000.0
         if self.airTimer < self.maxAirTimer:
             self.isGrounded = True
         else:

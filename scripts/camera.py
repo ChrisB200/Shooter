@@ -5,11 +5,11 @@ import scripts.framework as f
 from scripts.player import Player
 
 class Camera:
-    def __init__(self, resolution, scale):
+    def __init__(self, resolution, scale, fullscreen=FULLSCREEN):
         self.resolution = resolution
         self.scale = scale
 
-        self.display = pygame.display.set_mode(resolution, FULLSCREEN)
+        self.display = pygame.display.set_mode(resolution, fullscreen)
         self.trueScroll = [0, 0]
         self.panStrength = 10
 
