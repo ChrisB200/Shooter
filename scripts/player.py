@@ -2,14 +2,14 @@
 import pygame
 
 # Scripts
-import data.scripts.framework as f
+import scripts.framework as f
 
 class Player(f.Entity):
-    def __init__(self, pos, size, tag):
-        super().__init__(pos, size, tag)
+    def __init__(self, game, pos, size, tag):
+        super().__init__(game, pos, size, tag)
         self.momentum = [0, 0] # [momentumX, momentumY]
         self.strength = [0.1, 0.1] # [strengthX, strengthY]
-        self.cap = [3, 5] # [capX, capY]
+        self.cap = [1.5, 2] # [capX, capY]
         # Jump Data
         self.totalJumps = 2
         self.currentJumps = 0
@@ -68,9 +68,11 @@ class Player(f.Entity):
             if self.directions["right"]:
                 self.momentum[0] += self.strength[0] * axesx
                 self.momentum[0] = f.numCap(self.momentum[0], self.cap[0])
+                self.flip = False
             elif self.directions["left"]:
                 self.momentum[0] -= self.strength[0] * axesx
                 self.momentum[0] = f.numCap(self.momentum[0], -self.cap[0])
+                self.flip = True
             else:
                 if self.momentum[0] < -0.0001:
                     self.momentum[0] = 0
@@ -89,9 +91,14 @@ class Player(f.Entity):
         self.movement[1] = self.momentum[1]
 
         self.physics.move(self.movement, tiles)
+        self.pos[0] = self.physics.pos[0]
+        self.pos[1] = self.physics.pos[1]
 
-    def render(self,):
-        #tempRect = pygame.Rect(self.pos[0] - scroll[0], self.pos[1] - scroll[1], self.size[0], self.size[1])
-        return f.CameraObject(self.physics.rect, colour=(255, 255, 0), layer=1)
-        
-        
+        # Animations
+        if self.airTimer > 10:
+            self.set_action("jump")  
+        elif ((self.directions["left"] == True) or (self.directions["right"] == True)):
+            self.set_action("run")
+        else:
+            self.set_action("idle")
+            

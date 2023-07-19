@@ -2,6 +2,8 @@
 import pygame, math, sys, os
 from pygame.constants import *
 
+BASE_IMG_PATH = "data/images/"
+
 # Scripts
 class Physics2D:
     def __init__(self, pos, size):
@@ -59,9 +61,31 @@ class CameraObject():
         self.layer = layer
         self.colour = colour
 
+class Animation:
+    def __init__(self, images, img_dur=5, loop=True):
+        self.images = images
+        self.loop = loop
+        self.img_duration = img_dur
+        self.done = False
+        self.frame = 0
+    
+    def copy(self):
+        return Animation(self.images, self.img_duration, self.loop)
+    
+    def update(self):
+        if self.loop:
+            self.frame = (self.frame + 1) % (self.img_duration * len(self.images))
+        else:
+            self.frame = min(self.frame + 1, self.img_duration * len(self.images) - 1)
+            if self.frame >= self.img_duration * len(self.images) - 1:
+                self.done = True
+    
+    def img(self):
+        return self.images[int(self.frame / self.img_duration)]
 
 class Entity:
-    def __init__(self, pos, size, tag):
+    def __init__(self, game, pos, size, tag):
+        self.game = game
         self.pos = pos
         self.size = size
         self.tag = tag
@@ -69,6 +93,16 @@ class Entity:
         self.flip = False
         self.directions = {"left" : False, "right": False, "up": False, "down": False}
         self.movement = [0, 0] # [x, y]
+
+        self.action = ""
+        self.anim_offset = (-3, -3)
+        self.flip = False
+        self.set_action("idle")
+
+    def set_action(self, action):
+        if action != self.action:
+            self.action = action
+            self.animation = self.game.assets[self.tag + "/" + self.action].copy()
 
     def get_entity_angle(self, entity_2):
         x1 = self.pos[0] + int(self.size[0] / 2)
@@ -88,6 +122,13 @@ class Entity:
         dis_x = point[0] - self.get_center()[0]
         dis_y = point[1] - self.get_center()[1]
         return math.sqrt(dis_x ** 2 + dis_y ** 2)
+    
+    def render(self):
+        img = pygame.transform.flip(self.animation.img(), self.flip, False)
+        return CameraObject(img, (self.pos[0] + self.anim_offset[0], self.pos[1] + self.anim_offset[1]), 1)
+    
+    def update_animation(self):
+        self.animation.update()
 
 def clip(surf, x1, y1, x2, y2):
     clip = pygame.Rect(x1, y1, x2, y2)
@@ -161,7 +202,17 @@ def scale_object(obj, scale):
         return scaled_obj
     else:
         raise ValueError("Unsupported object type. Expected pygame.Surface or pygame.Rect.")
+    
+def load_image(path):
+    img = pygame.image.load(BASE_IMG_PATH + path).convert()
+    img.set_colorkey((0, 0, 0))
+    return img
 
+def load_images(path):
+    images = []
+    for img_name in sorted(os.listdir(BASE_IMG_PATH + path)):
+        images.append(load_image(path + '/' + img_name))
+    return images
 
 # Splits a .csv file into a 2D array
 def load_map(filename):

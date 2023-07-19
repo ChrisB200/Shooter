@@ -64,6 +64,17 @@ class Button(UIElement):
                 self.action()
         else:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+class Text(UIElement):
+    def __init__(self, x, y, width, height, text, style):
+        super().__init__(x, y, width, height, style)
+        self.text = text
+        self.font = tryExcept(style, "font")
+        self.fontSize = tryExcept(style, "fontSize", 12)
+        self.fontColour = tryExcept(style, "fontColour", (0, 0, 0))
+
+    def render(self, surf):
+        
             
 
 class Menu():

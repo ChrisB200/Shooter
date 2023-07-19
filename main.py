@@ -4,10 +4,11 @@ from pygame.constants import *
 from dataclasses import dataclass
 
 # Scripts
-import data.scripts.framework as f
-from data.scripts.player import Player
-from data.scripts.camera import Camera
-from data.scripts.user_interface import Button, Menu, UIElement
+import scripts.framework as f
+from scripts.framework import Animation, load_images
+from scripts.player import Player
+from scripts.camera import Camera
+from scripts.user_interface import Button, Menu, UIElement
 
 # Constants
 WIDTH, HEIGHT = 1920, 1080
@@ -28,6 +29,7 @@ MENU = 0
 PLAYING = 1
 PAUSED = 2
 
+#1024 768
 class Game:
     def __init__(self):
         pygame.init()
@@ -36,17 +38,6 @@ class Game:
         
          # Main Settings + Scaling
         self.clock = pygame.time.Clock()
-
-        # Entities
-        self.player = Player([0, 0], [50, 50], "player")
-
-        # Map
-        self.floor = pygame.Rect(0, 340, 1200, 20)
-
-        # Camera
-        self.camera = Camera((WIDTH, HEIGHT), 1)
-        self.camera.set_target(self.player, (0, -150))
-        self.camera.toggle_panning()
 
         # Joystick
         self.isUsingJoystick = True
@@ -60,11 +51,35 @@ class Game:
         # States
         self.currentState = PLAYING
 
+        # Camera
+        self.camera = Camera((WIDTH, HEIGHT), 3)
+
         # Menus
         self.pauseMenu = Menu(0, 0, WIDTH, HEIGHT)
         bg = UIElement(WIDTH//2-250, HEIGHT//2-250, 500, 500, {"bgColour": (255, 255, 255), "opacity": 5})
         end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, {"bgColour": (255, 0, 0), "text": "END"}, lambda: pygame.quit())
         self.pauseMenu.add_elements(bg, end)
+
+        self.tester = UIElement(200, 200, 400, 400, {"fontColour": (255, 255, 255), "text": "undefined", "opacity": 0})
+
+        # Assets
+        self.assets = {
+            'player/idle': Animation(load_images('entities/player/idle'), img_dur=6),
+            'player/run': Animation(load_images('entities/player/run'), img_dur=12),
+            'player/jump': Animation(load_images('entities/player/jump')),
+            'player/slide': Animation(load_images('entities/player/slide')),
+            'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
+        }
+
+        # Entities
+        self.player = Player(self, [0, 0], [8, 13], "player")
+
+        # Map
+        self.floor = pygame.Rect(0, 340, 1200, 20)
+
+        self.camera.set_target(self.player, (0, -50))
+        self.camera.toggle_panning()
+
 
     def convert_cam(self, **kwargs):
         camObjects = []
@@ -96,6 +111,8 @@ class Game:
                 self.player.isDashing = True
                 self.player.canDash = False
                 self.player.dashCooldown[2] = True
+            if event.key == K_p:
+                self.camera.zoom(1)
         if event.type == pygame.KEYUP:
             if event.key == KEYBOARD.moveL:
                self.player.directions["left"] = False
@@ -167,13 +184,17 @@ class Game:
 
     def update(self):
         self.player.update([self.floor], self.axesx)
+        self.player.update_animation()
+        self.camera.scroll[0] += 1
 
     def render(self):
         self.camera.screen.fill((100, 100, 150))
         self.camera.render(self.convert_cam(player=self.player, floor=self.floor))
+        self.tester.render(self.camera.display)
         pygame.display.update()
 
     def run(self):
+        self.clock.tick(60)
         while True:
             if self.currentState == MENU:
                 pass
