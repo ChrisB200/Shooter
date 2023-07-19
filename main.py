@@ -8,7 +8,7 @@ import scripts.framework as f
 from scripts.framework import Animation, load_images
 from scripts.player import Player
 from scripts.camera import Camera
-from scripts.user_interface import Button, Menu, UIElement
+from scripts.user_interface import Button, Menu, UIElement, Text
 
 # Constants
 WIDTH, HEIGHT = 1920, 1080
@@ -52,7 +52,7 @@ class Game:
         self.currentState = PLAYING
 
         # Camera
-        self.camera = Camera((WIDTH, HEIGHT), 3)
+        self.camera = Camera((WIDTH, HEIGHT), 2)
 
         # Menus
         self.pauseMenu = Menu(0, 0, WIDTH, HEIGHT)
@@ -60,11 +60,11 @@ class Game:
         end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, {"bgColour": (255, 0, 0), "text": "END"}, lambda: pygame.quit())
         self.pauseMenu.add_elements(bg, end)
 
-        self.tester = UIElement(200, 200, 400, 400, {"fontColour": (255, 255, 255), "text": "undefined", "opacity": 0})
+        self.tester = Text(200, 200, 400, 400, "undefined", {"fontColour": (255, 255, 255), "opacity": 0, "fontSize": 40})
 
         # Assets
         self.assets = {
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur=6),
+            'player/idle': Animation(load_images('entities/player/idle'), img_dur=12),
             'player/run': Animation(load_images('entities/player/run'), img_dur=12),
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/slide': Animation(load_images('entities/player/slide')),
@@ -102,9 +102,9 @@ class Game:
                self.player.directions["right"] = True
             if event.key == KEYBOARD.jump:
                 if self.player.airTimer < self.player.maxAirTimer:
-                    self.player.momentum[1] = -5
+                    self.player.momentum[1] = -4.5
                 if self.player.currentJumps < self.player.totalJumps:
-                    self.player.momentum[1] = -5
+                    self.player.momentum[1] = -4.5
                     self.player.currentJumps += 1
             if event.key == KEYBOARD.dash and self.player.isDashing == False and self.player.canDash == True and self.player.dashCooldown[2] != True:
                 self.player.momentum[0] = self.player.momentum[0] *self.player.dashStrength
@@ -118,7 +118,9 @@ class Game:
                self.player.directions["left"] = False
             if event.key == KEYBOARD.moveR:
                self.player.directions["right"] = False
-
+        if event.type == pygame.MOUSEWHEEL:
+            zoom = event.y/10
+            self.camera.zoom(zoom)
     # a:0, b:1, x:2, y:3
     def joystick_events(self, event):
         axes_x = self.selectedJoystick.get_axis(0)

@@ -74,7 +74,11 @@ class Text(UIElement):
         self.fontColour = tryExcept(style, "fontColour", (0, 0, 0))
 
     def render(self, surf):
-        
+        # Creates the text
+        font = pygame.font.Font(None, self.fontSize)
+        textSurface = font.render(self.text, True, self.fontColour)
+
+        surf.blit(textSurface, self.pos)
             
 
 class Menu():

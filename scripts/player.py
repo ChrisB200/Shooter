@@ -8,8 +8,8 @@ class Player(f.Entity):
     def __init__(self, game, pos, size, tag):
         super().__init__(game, pos, size, tag)
         self.momentum = [0, 0] # [momentumX, momentumY]
-        self.strength = [0.1, 0.1] # [strengthX, strengthY]
-        self.cap = [1.5, 2] # [capX, capY]
+        self.strength = [0.25, 0.08] # [strengthX, strengthY]
+        self.cap = [2, 3] # [capX, capY]
         # Jump Data
         self.totalJumps = 2
         self.currentJumps = 0
@@ -70,7 +70,7 @@ class Player(f.Entity):
                 self.momentum[0] = f.numCap(self.momentum[0], self.cap[0])
                 self.flip = False
             elif self.directions["left"]:
-                self.momentum[0] -= self.strength[0] * axesx
+                self.momentum[0] += self.strength[0] * -axesx
                 self.momentum[0] = f.numCap(self.momentum[0], -self.cap[0])
                 self.flip = True
             else:
@@ -94,8 +94,10 @@ class Player(f.Entity):
         self.pos[0] = self.physics.pos[0]
         self.pos[1] = self.physics.pos[1]
 
+        self.game.tester.text = str(self.momentum[1])
+
         # Animations
-        if self.airTimer > 10:
+        if self.airTimer > 12:
             self.set_action("jump")  
         elif ((self.directions["left"] == True) or (self.directions["right"] == True)):
             self.set_action("run")

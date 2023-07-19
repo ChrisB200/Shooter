@@ -54,7 +54,6 @@ class Camera:
         
     def zoom(self, amount:int):
         self.scale += amount
-        self.offset *= (amount)
         tempScreen = pygame.transform.scale(self.screen.copy(), (self.resolution[0] / self.scale, self.resolution[1] / self.scale))
         self.screen = tempScreen
         
