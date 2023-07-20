@@ -1,34 +1,51 @@
+# Modules
 import pygame
 from pygame.constants import *
 
-import scripts.framework as f
-from scripts.player import Player
+# Scripts
 
+# An object which can be used in a camera class
+class CameraObject():
+    def __init__(self, entity, pos=[0, 0], layer=0, colour=(255, 255, 255)):
+        self.entity = entity
+        if isinstance(entity, pygame.Rect):
+            self.pos = [entity.x, entity.y]
+            self.type = "rect"
+        elif isinstance(entity, pygame.Surface):
+            self.pos = pos
+            self.type = "surface"
+        self.layer = layer
+        self.colour = colour
+
+# Camera System
 class Camera:
     def __init__(self, resolution, scale, fullscreen=FULLSCREEN):
+        # Display Data
         self.resolution = resolution
         self.scale = scale
-
         self.display = pygame.display.set_mode(resolution, fullscreen)
+        # Scroll Data
         self.trueScroll = [0, 0]
-        self.panStrength = 5
-
-        self.renderOrder = {"x": False, "y": False, "layer": True}
+        # Tracking Data
         self.isFollowing = None  # [target, [offsetX, offsetY]]
         self.isPanning = False
-
+        self.panStrength = 5
+        self.offset = (0, 0)
+        # Other
+        self.renderOrder = {"x": False, "y": False, "layer": True}
         self.screen = pygame.Surface((self.resolution[0] / self.scale, self.resolution[1] / self.scale))
 
-        self.offset = (0, 0)
-
+    # Returns a screen size
     @property
     def screenSize(self):
         return self.screen.get_size()[0], self.screen.get_size()[1]
 
+    # Returns an integer scroll value
     @property
     def scroll(self):
         return [int(self.trueScroll[0]), int(self.trueScroll[1])]
 
+    # Sets the render order
     def set_renderOrder(self, order):
         if order == "x":
             return {"x": True, "y": False, "layer": False}
@@ -37,13 +54,16 @@ class Camera:
         else:
             return {"x": False, "y": False, "layer": True}
 
+    # Sets a camera target
     def set_target(self, target, offset=(0, 0)):
         self.isFollowing = target
         self.offset = offset
 
+    # Toggles panning
     def toggle_panning(self):
         self.isPanning = not self.isPanning
 
+    # Sorts camera objects via render order
     def sort_cameraObjects(self, cameraObj):
         if self.renderOrder["x"] == True:
             return cameraObj.pos[0]
@@ -51,14 +71,16 @@ class Camera:
             return cameraObj.pos[1]
         else:
             return 0
-        
+    
+    # Allows for zooming functionality
     def zoom(self, amount:int):
         self.scale += amount
         tempScreen = pygame.transform.scale(self.screen.copy(), (self.resolution[0] / self.scale, self.resolution[1] / self.scale))
         self.screen = tempScreen     
-        
+    
+    # Renders camera objects and controls scrolling
     def render(self, dt, *camObjects):
-        if abs(dt) > 1e-6:  # A small threshold to consider dt close to zero
+        if abs(dt) > 1e-6:
             pan_strength = self.panStrength / dt
         else:
             pan_strength = self.panStrength
