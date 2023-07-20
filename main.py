@@ -1,5 +1,5 @@
 # Modules
-import pygame, sys, math
+import pygame, sys, time
 from pygame.constants import *
 from dataclasses import dataclass
 
@@ -29,7 +29,7 @@ MENU = 0
 PLAYING = 1
 PAUSED = 2
 
-JUMP_STRENGTH = -10
+JUMP_STRENGTH = -7
 
 #1024 768
 class Game:
@@ -54,7 +54,7 @@ class Game:
         self.currentState = PLAYING
 
         # Camera
-        self.camera = Camera((1920, 1080), 2)
+        self.camera = Camera((WIDTH, HEIGHT), 3)
 
         # Menus
         self.pauseMenu = Menu(0, 0, WIDTH, HEIGHT)
@@ -67,7 +67,7 @@ class Game:
         # Assets
         self.assets = {
             'player/idle': Animation(load_images('entities/player/idle'), img_dur=6),
-            'player/run': Animation(load_images('entities/player/run'), img_dur=4),
+            'player/run': Animation(load_images('entities/player/run'), img_dur=10),
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/slide': Animation(load_images('entities/player/slide')),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
@@ -81,7 +81,12 @@ class Game:
 
         self.camera.set_target(self.player, (0, -50))
         self.camera.toggle_panning()
-        self.fps = 100
+        self.target_fps = 120
+        self.fps = 120
+
+        self.prev_time = time.time()
+        self.dt = 0
+        
 
 
     def convert_cam(self, **kwargs):
@@ -115,9 +120,9 @@ class Game:
                 self.player.canDash = False
                 self.player.dashCooldown[2] = True
             if event.key == K_p:
-                self.fps = 10
-            if event.key == K_s:
                 self.fps = 60
+            if event.key == K_s:
+                self.fps = 120
         if event.type == pygame.KEYUP:
             if event.key == KEYBOARD.moveL:
                self.player.directions["left"] = False
@@ -126,6 +131,7 @@ class Game:
         if event.type == pygame.MOUSEWHEEL:
             zoom = event.y/10
             self.camera.zoom(zoom)
+
     # a:0, b:1, x:2, y:3
     def joystick_events(self, event):
         axes_x = self.selectedJoystick.get_axis(0)
@@ -153,7 +159,7 @@ class Game:
                     self.player.momentum[1] = JUMP_STRENGTH
                     self.player.currentJumps += 1
             if event.button == CONTROLLER.dash and self.player.isDashing == False and self.player.canDash == True and self.player.dashCooldown[2] != True:
-                self.player.momentum[0] = self.player.momentum[0] *self.player.dashStrength
+                self.player.momentum[0] = self.player.momentum[0] * self.player.dashStrength
                 self.player.isDashing = True
                 self.player.canDash = False
                 self.player.dashCooldown[2] = True
@@ -196,13 +202,17 @@ class Game:
 
     def render(self):
         self.camera.screen.fill((100, 100, 150))
-        self.camera.render(self.convert_cam(player=self.player, floor=self.floor))
+        self.camera.render(self.dt, self.convert_cam(player=self.player, floor=self.floor))
         self.tester.render(self.camera.display)
         pygame.display.update()
 
     def run(self):
         while True:
-            self.dt = self.clock.tick(60) / 1000.0
+            self.clock.tick(self.fps)
+            now = time.time()
+            self.dt = (now - self.prev_time)  * self.target_fps
+            self.prev_time = now
+            
             if self.currentState == MENU:
                 pass
             elif self.currentState == PAUSED:

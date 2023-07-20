@@ -8,8 +8,8 @@ class Player(f.Entity):
     def __init__(self, game, pos, size, tag):
         super().__init__(game, pos, size, tag)
         self.momentum = [0, 0] # [momentumX, momentumY]
-        self.strength = [1, 0.5] # [strengthX, strengthY]
-        self.cap = [6, 7] # [capX, capY]
+        self.strength = [0.5, 0.2] # [strengthX, strengthY]
+        self.cap = [4, 5] # [capX, capY]
         # Jump Data
         self.totalJumps = 2
         self.currentJumps = 0
@@ -23,13 +23,13 @@ class Player(f.Entity):
         self.dashCooldown = [25, 25, False] # [currentTimer, maxTimer, currentlyCounting]
 
         self.draw_pos = self.pos
+        self.originalMomentum = self.momentum
 
     @property
     def get_pos(self):
         return self.pos
 
     def update(self, tiles, axesx=1):
-        dt = self.game.clock.get_time() / 1000.0
         if self.airTimer < self.maxAirTimer:
             self.isGrounded = True
         else:
@@ -91,11 +91,11 @@ class Player(f.Entity):
         self.movement[0] = self.momentum[0]
         self.movement[1] = self.momentum[1]
 
-        self.physics.move(self.movement, tiles)
+        self.physics.move(self.movement, tiles, self.game.dt)
         self.pos[0] = self.physics.pos[0]
         self.pos[1] = self.physics.pos[1]
 
-        self.game.tester.text = str(self.momentum[1])
+        self.game.tester.text = str(self.game.fps)
 
         # Animations
         if self.airTimer > 12:

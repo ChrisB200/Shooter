@@ -11,7 +11,7 @@ class Camera:
 
         self.display = pygame.display.set_mode(resolution, fullscreen)
         self.trueScroll = [0, 0]
-        self.panStrength = 10
+        self.panStrength = 5
 
         self.renderOrder = {"x": False, "y": False, "layer": True}
         self.isFollowing = None  # [target, [offsetX, offsetY]]
@@ -55,22 +55,24 @@ class Camera:
     def zoom(self, amount:int):
         self.scale += amount
         tempScreen = pygame.transform.scale(self.screen.copy(), (self.resolution[0] / self.scale, self.resolution[1] / self.scale))
-        self.screen = tempScreen
+        self.screen = tempScreen     
         
-        
-    def render(self, *camObjects):
+    def render(self, dt, *camObjects):
+        if abs(dt) > 1e-6:  # A small threshold to consider dt close to zero
+            pan_strength = self.panStrength / dt
+        else:
+            pan_strength = self.panStrength
         if self.isFollowing is not None:
             if self.isPanning:
                 target_center_x = (self.isFollowing.pos[0] + self.isFollowing.size[0] // 2) + self.offset[0]
                 target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2) + self.offset[1]
-                self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / self.panStrength
-                self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / self.panStrength
+                self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / pan_strength
+                self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / pan_strength
             else:
                 target_center_x = (self.isFollowing.pos[0] + self.isFollowing.size[0] // 2)
                 target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2)
-                self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / self.panStrength
-                self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / self.panStrength
-
+                self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / pan_strength
+                self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / pan_strength
 
         sorted_camObjects = sorted(camObjects, key=self.sort_cameraObjects)[0]
 

@@ -12,9 +12,9 @@ class Physics2D:
         self.rect = pygame.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
         self.collisions = {'bottom': False, 'top': False, 'left': False, 'right': False}
 
-    def move(self, movement, tiles): # Checks collisions based on movement direction
+    def move(self, movement, tiles, dt): # Checks collisions based on movement direction
         # x-axis
-        self.pos[0] += movement[0]
+        self.pos[0] += movement[0] * dt
         self.rect.x = int(self.pos[0])
         tileCollisions = collision_test(self.rect, tiles)
         objectCollisions = {'bottom': False, 'top': False, 'left': False, 'right': False}
@@ -28,7 +28,7 @@ class Physics2D:
         self.pos[0] = self.rect.x
 
         # y-axis
-        self.pos[1] += movement[1]
+        self.pos[1] += movement[1] * dt
         self.rect.y = int(self.pos[1])
         tileCollisions = collision_test(self.rect, tiles)
         for tile in tileCollisions:
@@ -62,26 +62,31 @@ class CameraObject():
         self.colour = colour
 
 class Animation:
-    def __init__(self, images, img_dur=5, loop=True):
+    def __init__(self, images, img_dur=0.2, loop=True):
         self.images = images
         self.loop = loop
         self.img_duration = img_dur
         self.done = False
         self.frame = 0
+        self.time_elapsed = 0  # Track the time elapsed since the last frame change
     
     def copy(self):
         return Animation(self.images, self.img_duration, self.loop)
     
-    def update(self):
-        if self.loop:
-            self.frame = (self.frame + 1) % (self.img_duration * len(self.images))
-        else:
-            self.frame = min(self.frame + 1, self.img_duration * len(self.images) - 1)
-            if self.frame >= self.img_duration * len(self.images) - 1:
-                self.done = True
+    def update(self, dt):
+        self.time_elapsed += dt
+        while self.time_elapsed >= self.img_duration:
+            self.time_elapsed -= self.img_duration
+            if self.loop:
+                self.frame = (self.frame + 1) % len(self.images)
+            else:
+                self.frame = min(self.frame + 1, len(self.images) - 1)
+                if self.frame == len(self.images) - 1:
+                    self.done = True
     
     def img(self):
-        return self.images[int(self.frame / self.img_duration)]
+        return self.images[self.frame]
+
 
 class Entity:
     def __init__(self, game, pos, size, tag):
@@ -128,7 +133,7 @@ class Entity:
         return CameraObject(img, (self.pos[0] + self.anim_offset[0], self.pos[1] + self.anim_offset[1]), 1)
     
     def update_animation(self):
-        self.animation.update()
+        self.animation.update(self.game.dt)
 
 def clip(surf, x1, y1, x2, y2):
     clip = pygame.Rect(x1, y1, x2, y2)
