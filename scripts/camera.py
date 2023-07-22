@@ -63,23 +63,23 @@ class Camera:
     def toggle_panning(self):
         self.isPanning = not self.isPanning
 
-    # Sorts camera objects via render order
-    def sort_cameraObjects(self, cameraObj):
+    # Sorts camera objects via layer, x position, or y position
+    def sortCameraObjects(self, cameraObjects):
         if self.renderOrder["x"] == True:
-            return cameraObj.pos[0]
+            return sorted(cameraObjects, key=lambda camObj: camObj.entity.x)
         elif self.renderOrder["y"] == True:
-            return cameraObj.pos[1]
+            return sorted(cameraObjects, key=lambda camObj: camObj.entity.y)
         else:
-            return 0
+            return sorted(cameraObjects, key=lambda camObj: camObj.layer)
+
     
     # Allows for zooming functionality
     def zoom(self, amount:int):
         self.scale += amount
         tempScreen = pygame.transform.scale(self.screen.copy(), (self.resolution[0] / self.scale, self.resolution[1] / self.scale))
-        self.screen = tempScreen     
-    
-    # Renders camera objects and controls scrolling
-    def render(self, dt, *camObjects):
+        self.screen = tempScreen
+
+    def update(self, dt):
         if abs(dt) > 1e-6:
             pan_strength = self.panStrength / dt
         else:
@@ -95,8 +95,10 @@ class Camera:
                 target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2)
                 self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / pan_strength
                 self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / pan_strength
-
-        sorted_camObjects = sorted(camObjects, key=self.sort_cameraObjects)[0]
+    
+    # Renders camera objects and controls scrolling
+    def render(self, *camObjects):
+        sorted_camObjects = self.sortCameraObjects(camObjects[0])
 
         for camObj in sorted_camObjects:
             if camObj.type == "rect":

@@ -4,11 +4,12 @@ from pygame.constants import *
 from dataclasses import dataclass
 
 # Scripts
-from scripts.framework import Animation, load_images, controller_check
+from scripts.framework import Animation, load_images, controller_check, blit_center
 from scripts.entities import Player
 from scripts.camera import Camera, CameraObject
 from scripts.user_interface import Button, Menu, UIElement, Text
 from scripts.settings import Settings
+from scripts.weapons import Weapon
 
 MENU = 0
 PLAYING = 1
@@ -25,7 +26,7 @@ class Game:
         
          # Main Settings + Scaling
         self.clock = pygame.time.Clock()
-        self.settings = Settings()
+        self.settings = Settings.load_from_file("data/settings.dat")
 
         # Joystick
         self.isUsingJoystick = True
@@ -40,45 +41,44 @@ class Game:
         self.currentState = PLAYING
 
         # Camera
-        self.camera = Camera((self.settings.width, self.settings.height), 2)
+        self.camera = Camera(self.settings.resolution, 2)
 
         # Menus
         self.pauseMenu = Menu(0, 0, self.settings.width, self.settings.height)
         bg = UIElement(self.settings.width//2-250, self.settings.height//2-250, 500, 500, {"bgColour": (255, 255, 255), "opacity": 5})
-        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, {"bgColour": (255, 0, 0), "text": "END"}, lambda: pygame.quit())
+        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, {"bgColour": (255, 0, 0), "text": "END"}, lambda: (self.settings.save_to_file("data/settings.dat"), pygame.quit()))
         self.pauseMenu.add_elements(bg, end)
 
         self.tester = Text(200, 200, 400, 400, "undefined", {"fontColour": (255, 255, 255), "opacity": 0, "fontSize": 40})
 
         # Assets
         self.assets = {
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur=6),
+            'player/idle': Animation(load_images('entities/player/idle'), img_dur=10),
             'player/run': Animation(load_images('entities/player/run'), img_dur=10),
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/slide': Animation(load_images('entities/player/slide')),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
+            'weapons/idle': Animation(load_images('weapons'))
         }
 
         # Entities
         self.player = Player(self, [0, 0], [8, 13], "player")
+        self.player.weapon = Weapon(self, blit_center(self.player.current_image, self.player.pos), [8, 8], "weapons", (4, -3), 90)
 
         # Map
         self.floor = pygame.Rect(0, 100, 1000, 20)
 
         self.camera.set_target(self.player, (0, -50))
         self.camera.toggle_panning()
-        self.target_fps = 120
-        self.fps = 120
 
         self.prev_time = time.time()
         self.dt = 0
-        
-
 
     def convert_cam(self, **kwargs):
         camObjects = []
         camObjects.append(kwargs.get("player").render())
         camObjects.append(CameraObject(kwargs.get("floor"), colour=(0, 255, 0)))
+        camObjects.append(kwargs.get("weapon").render())
         return camObjects
     
     def keyboard_events(self, event):
@@ -105,10 +105,6 @@ class Game:
                 self.player.isDashing = True
                 self.player.canDash = False
                 self.player.dashCooldown[2] = True
-            if event.key == K_p:
-                self.fps = 60
-            if event.key == K_s:
-                self.fps = 120
         if event.type == pygame.KEYUP:
             if event.key == self.settings.keyboard.moveL:
                self.player.directions["left"] = False
@@ -184,19 +180,19 @@ class Game:
     def update(self):
         self.player.update([self.floor], self.axesx)
         self.player.update_animation()
-        self.camera.scroll[0] += 1
+        self.camera.update(self.dt)
 
     def render(self):
         self.camera.screen.fill((100, 100, 150))
-        self.camera.render(self.dt, self.convert_cam(player=self.player, floor=self.floor))
+        self.camera.render(self.convert_cam(player=self.player, floor=self.floor, weapon=self.player.weapon))
         self.tester.render(self.camera.display)
         pygame.display.update()
 
     def run(self):
         while True:
-            self.clock.tick(self.fps)
+            self.clock.tick(self.settings.targetFPS)
             now = time.time()
-            self.dt = (now - self.prev_time)  * self.target_fps
+            self.dt = 1
             self.prev_time = now
             
             if self.currentState == MENU:
@@ -210,8 +206,7 @@ class Game:
                 self.render()
                 self.playing_events()
 
-game = Game()
-game.run()
+Game().run()
 
 
 

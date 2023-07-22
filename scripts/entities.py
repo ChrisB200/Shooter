@@ -3,7 +3,7 @@ import pygame, math
 
 # Scripts
 from scripts.camera import CameraObject
-from scripts.framework import get_center, collision_test, numCap
+from scripts.framework import get_center, collision_test, numCap, blit_center
 
 # Entity Class
 class Entity:
@@ -19,7 +19,7 @@ class Entity:
         self.movement = [0, 0] # [x, y]
         # Animation Logic
         self.action = ""
-        self.anim_offset = (-3, -3)
+        self.anim_offset = (0, 0)
         self.flip = False
         self.set_action("idle")
 
@@ -41,9 +41,13 @@ class Entity:
         return angle
 
     # Gets the angle between an entity and a point
-    def get_point_angle(self, point):
-        centerPos = get_center(self.pos, self.size)
-        return math.atan2(point[1] - centerPos[1], point[0] - centerPos[0])
+    def get_point_angle(self, point, scroll=[0, 0], offset=0, centered=True):
+        pos = [self.pos[0] - scroll[0], self.pos[1] - scroll[1]]
+        if centered:
+            pos = get_center(pos, self.size)
+        radians = math.atan2(point[1] - pos[1], point[0] - pos[0])
+        return -math.degrees(radians) + offset
+         
 
     # Gets the distance between an entity and a point
     def get_distance(self, point):
@@ -59,6 +63,11 @@ class Entity:
     # Updates the current frame of an animation
     def update_animation(self):
         self.animation.update(self.game.dt)
+
+    # Returns the current image
+    @property
+    def current_image(self):
+        return pygame.transform.flip(self.animation.img(), self.flip, False)
 
 # Physics Entity
 class PhysicsEntity(Entity):
@@ -117,8 +126,13 @@ class Player(PhysicsEntity):
         # Dash Data
         self.isDashing = False
         self.canDash = True
-        self.dashStrength = 4.2
+        self.dashStrength = 6.2
         self.dashCooldown = [25, 25, False] # [currentTimer, maxTimer, currentlyCounting]
+        # Animation Data
+        self.anim_offset = (-3, -5)
+
+        # Weapon
+        self.weapon = None
 
     # Returns the position
     @property
@@ -197,7 +211,10 @@ class Player(PhysicsEntity):
             self.set_action("run")
         else:
             self.set_action("idle")
-            
+
+        if self.weapon:
+            self.weapon.update(self)
+
 # Object Class TEMPORARY            
 class Object:
     def __init__(self, pos, size):
