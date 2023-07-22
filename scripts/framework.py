@@ -65,6 +65,15 @@ def get_center(pos, size):
     y = pos[1] + int(size[1] / 2)
     return [x,y]
 
+def control_deadzone(deadzone, *axes):
+    newAxes = []
+    for axis in axes:
+        if abs(axis) < deadzone:
+            axis = 0
+        newAxes.append(axis)
+
+    return newAxes
+
 # Flips an image
 def flip_img(img,boolean=True, boolean_2=False):
     return pygame.transform.flip(img,boolean,boolean_2)

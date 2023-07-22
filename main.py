@@ -4,7 +4,7 @@ from pygame.constants import *
 from dataclasses import dataclass
 
 # Scripts
-from scripts.framework import Animation, load_images, controller_check, blit_center
+from scripts.framework import Animation, load_images, controller_check, blit_center, control_deadzone
 from scripts.entities import Player
 from scripts.camera import Camera, CameraObject
 from scripts.user_interface import Button, Menu, UIElement, Text
@@ -29,13 +29,16 @@ class Game:
         self.settings = Settings.load_from_file("data/settings.dat")
 
         # Joystick
-        self.isUsingJoystick = True
+        self.isUsingJoystick = False
         try:
             self.joysticks = controller_check()
             self.selectedJoystick = self.joysticks[0]
         except:
             self.selectedJoystick = None
-        self.axesx = 1
+
+        self.leftJoy = (1, 1)
+        self.rightJoy = (1, 1)
+        self.switch_input()
 
         # States
         self.currentState = PLAYING
@@ -58,7 +61,8 @@ class Game:
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/slide': Animation(load_images('entities/player/slide')),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
-            'weapons/idle': Animation(load_images('weapons'))
+            'weapons/idle': Animation(load_images('weapons')),
+            'cursor/idle': Animation(load_images('cursor'))
         }
 
         # Entities
@@ -73,6 +77,17 @@ class Game:
 
         self.prev_time = time.time()
         self.dt = 0
+
+    def switch_input(self):
+        if not self.isUsingJoystick:
+            self.isUsingJoystick = True
+            self.leftJoy = (0, 0)
+            self.rightJoy = (0, 0)
+        else:
+            self.isUsingJoystick = False
+            self.leftJoy = (1, 1)
+            self.rightJoy = None
+        
 
     def convert_cam(self, **kwargs):
         camObjects = []
@@ -116,17 +131,13 @@ class Game:
 
     # a:0, b:1, x:2, y:3
     def joystick_events(self, event):
-        axes_x = self.selectedJoystick.get_axis(0)
-        
-        # Apply deadzone to filter out small joystick movements
-        deadzone = 0.1  # Adjust the deadzone threshold as needed
-        if abs(axes_x) < deadzone:
-            axes_x = 0
+        self.leftJoy = control_deadzone(0.1, self.selectedJoystick.get_axis(0), self.selectedJoystick.get_axis(1))
+        self.rightJoy = control_deadzone(0.1, self.selectedJoystick.get_axis(2), self.selectedJoystick.get_axis(3))
 
-        if axes_x > 0:
+        if self.leftJoy[0] > 0:
             self.player.directions["right"] = True
             self.player.directions["left"] = False
-        elif axes_x < 0:
+        elif self.leftJoy[0] < 0:
             self.player.directions["left"] = True
             self.player.directions["right"] = False
         else:
@@ -156,6 +167,9 @@ class Game:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == K_0:
+                    self.switch_input()
             if self.isUsingJoystick != False:
                 try:
                     self.joystick_events(event)
@@ -178,13 +192,15 @@ class Game:
             self.pauseMenu.handle(event)
 
     def update(self):
-        self.player.update([self.floor], self.axesx)
+        self.tester.text = str(self.leftJoy)
+        self.player.update([self.floor])
         self.player.update_animation()
         self.camera.update(self.dt)
 
     def render(self):
         self.camera.screen.fill((100, 100, 150))
         self.camera.render(self.convert_cam(player=self.player, floor=self.floor, weapon=self.player.weapon))
+        self.camera.display.blit(self.player.cursor.current_image, self.player.cursor.pos)
         self.tester.render(self.camera.display)
         pygame.display.update()
 

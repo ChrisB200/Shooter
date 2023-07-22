@@ -3,7 +3,7 @@ import pygame, math
 
 # Scripts
 from scripts.camera import CameraObject
-from scripts.framework import get_center, collision_test, numCap, blit_center
+from scripts.framework import get_center, collision_test, numCap, load_image
 
 # Entity Class
 class Entity:
@@ -22,6 +22,14 @@ class Entity:
         self.anim_offset = (0, 0)
         self.flip = False
         self.set_action("idle")
+
+    @property
+    def x(self):
+        return self.pos[0]
+    
+    @property
+    def y(self):
+        return self.pos[1]
 
     # Sets an animation action
     def set_action(self, action):
@@ -110,7 +118,7 @@ class PhysicsEntity(Entity):
     
 # Player Class
 class Player(PhysicsEntity):
-    def __init__(self, game, pos, size, tag):
+    def __init__(self, game, pos:list, size, tag):
         # Parameters
         super().__init__(game, pos, size, tag)
         # Movement Data
@@ -130,8 +138,8 @@ class Player(PhysicsEntity):
         self.dashCooldown = [25, 25, False] # [currentTimer, maxTimer, currentlyCounting]
         # Animation Data
         self.anim_offset = (-3, -5)
-
         # Weapon
+        self.cursor = UserCursor(self.game, [*pygame.mouse.get_pos()], [9, 9], "cursor")
         self.weapon = None
 
     # Returns the position
@@ -140,7 +148,7 @@ class Player(PhysicsEntity):
         return self.pos
 
     # Controls player movement and states
-    def update(self, tiles, axesx=1):
+    def update(self, tiles):
         if self.airTimer < self.maxAirTimer:
             self.isGrounded = True
         else:
@@ -177,12 +185,17 @@ class Player(PhysicsEntity):
         
         # x-axis movement
         if self.isDashing == False:
-            if self.directions["right"]:
-                self.momentum[0] += self.strength[0] * axesx
+            strength = self.strength[0]
+            if self.directions["right"]:   
+                if self.game.isUsingJoystick:
+                    strength *= self.game.leftJoy[0]
+                self.momentum[0] += strength
                 self.momentum[0] = numCap(self.momentum[0], self.cap[0])
                 self.flip = False
             elif self.directions["left"]:
-                self.momentum[0] += self.strength[0] * -axesx
+                if self.game.isUsingJoystick:
+                    strength *= self.game.leftJoy[0]
+                self.momentum[0] += -self.strength[0]
                 self.momentum[0] = numCap(self.momentum[0], -self.cap[0])
                 self.flip = True
             else:
@@ -212,6 +225,7 @@ class Player(PhysicsEntity):
         else:
             self.set_action("idle")
 
+        self.cursor.update()
         if self.weapon:
             self.weapon.update(self)
 
@@ -222,3 +236,31 @@ class Object:
         self.size = size
         self.rotation = 0
         self.flip = False
+
+# Cursor for users
+class UserCursor(Entity):
+    def __init__(self, game, pos, size, tag):
+        super().__init__(game, pos, size, tag)
+        self.location = [1, 1]
+
+    def set_pos(self, x, y):
+        self.pos[0] = x
+        self.pos[1] = y
+
+    def update(self):
+        x = self.pos[0]
+        y = self.pos[1]
+        if self.game.isUsingJoystick:
+            x += round(self.game.rightJoy[0] * 5)
+            y += round(self.game.rightJoy[1] * 5)
+            self.pos[0] = self.pos[0]
+            self.pos[1] = self.pos[1] 
+            self.set_pos(x, y)
+        else:
+            x, y = pygame.mouse.get_pos()
+            self.set_pos(x, y)
+        self.cursor_in_space()
+
+    def cursor_in_space(self):
+        self.location[0] = self.pos[0] // self.game.camera.scale
+        self.location[1] = self.pos[1] // self.game.camera.scale

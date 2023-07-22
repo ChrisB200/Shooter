@@ -13,27 +13,24 @@ class Weapon(Entity):
         self.offset = offset
         self.rotation = 0
         
-    def rotate_at_cursor(self):
-        # Mouse Coordinates
-        mx, my = pygame.mouse.get_pos()
-        mx = mx // self.game.camera.scale
-        my = my // self.game.camera.scale
-
+    def rotate_at_cursor(self, cursor):
+        cursor.update()
+        
         # Adjust weapon position by considering camera scrolling
         weapon_x = self.pos[0] - self.game.camera.scroll[0]
         weapon_y = self.pos[1] - self.game.camera.scroll[1]
 
         # Flip weapon position based on x axis
-        if mx > weapon_x:
+        if cursor.location[0] > weapon_x:
             self.flip = False
         else:
             self.flip = True
 
-        self.rotation = self.get_point_angle((mx, my), self.game.camera.scroll, self.offset, False)
+        self.rotation = self.get_point_angle((cursor.location[0], cursor.location[1]), self.game.camera.scroll, self.offset, False)
 
     def update(self, entity):
         self.pos = get_center(entity.pos, entity.size)
-        self.rotate_at_cursor()
+        self.rotate_at_cursor(entity.cursor)
 
     def render(self):
         img = blit_rotate(self.current_image, self.pos, self.pivot, self.rotation)
