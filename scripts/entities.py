@@ -3,7 +3,7 @@ import pygame, math
 
 # Scripts
 from scripts.camera import CameraObject
-from scripts.framework import get_center, collision_test, numCap, load_image
+from scripts.framework import Controller, get_center, collision_test, numCap, load_image
 
 # Entity Class
 class Entity:
@@ -66,7 +66,7 @@ class Entity:
     # Returns a camera object
     def render(self):
         img = pygame.transform.flip(self.animation.img(), self.flip, False)
-        return CameraObject(img, (self.pos[0] + self.anim_offset[0], self.pos[1] + self.anim_offset[1]), 1)
+        self.game.add_camera_object(CameraObject(img, (self.pos[0] + self.anim_offset[0], self.pos[1] + self.anim_offset[1]), 1))
     
     # Updates the current frame of an animation
     def update_animation(self):
@@ -141,11 +141,16 @@ class Player(PhysicsEntity):
         # Weapon
         self.cursor = UserCursor(self.game, [*pygame.mouse.get_pos()], [9, 9], "cursor")
         self.weapon = None
+        self.input = None
 
     # Returns the position
     @property
     def get_pos(self):
         return self.pos
+    
+    def render(self):
+        super().render()
+        self.weapon.render()
 
     # Controls player movement and states
     def update(self, tiles):
@@ -225,7 +230,7 @@ class Player(PhysicsEntity):
         else:
             self.set_action("idle")
 
-        self.cursor.update()
+        self.cursor.update(self)
         if self.weapon:
             self.weapon.update(self)
 
@@ -247,12 +252,12 @@ class UserCursor(Entity):
         self.pos[0] = x
         self.pos[1] = y
 
-    def update(self):
+    def update(self, player):
         x = self.pos[0]
         y = self.pos[1]
-        if self.game.isUsingJoystick:
-            x += round(self.game.rightJoy[0] * 5)
-            y += round(self.game.rightJoy[1] * 5)
+        if type(player.input) == Controller:
+            x += round(player.input.rightStick[0] * 5)
+            y += round(player.input.rightStick[1] * 5)
             self.pos[0] = self.pos[0]
             self.pos[1] = self.pos[1] 
             self.set_pos(x, y)

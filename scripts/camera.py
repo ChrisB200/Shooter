@@ -31,9 +31,15 @@ class Camera:
         self.isPanning = False
         self.panStrength = 5
         self.offset = (0, 0)
+        # Scaling Data
+        self.desired_scale = scale
+        self.min_scale = 1.5  # Set your desired minimum scale value here
+        self.max_scale = 2  # Set your desired maximum scale value here
+        self.zoom_speed = 1  # Set the zoom speed, adjust as needed
         # Other
         self.renderOrder = {"x": False, "y": False, "layer": True}
         self.screen = pygame.Surface((self.resolution[0] / self.scale, self.resolution[1] / self.scale))
+        self.targets = ()
 
     # Returns a screen size
     @property
@@ -59,6 +65,10 @@ class Camera:
         self.isFollowing = target
         self.offset = offset
 
+    def set_targets(self, targets, offset=(0, 0)):
+        self.targets = targets
+        self.offset = offset
+
     # Toggles panning
     def toggle_panning(self):
         self.isPanning = not self.isPanning
@@ -74,31 +84,85 @@ class Camera:
 
     
     # Allows for zooming functionality
-    def zoom(self, amount:int):
-        self.scale += amount
+    def zoom(self, amount: float):
+        # Incrementally update the desired scale
+        self.desired_scale += amount
+
+        # Clamp the desired scale to the defined range
+        self.desired_scale = max(self.min_scale, min(self.max_scale, self.desired_scale))
+
+        # Smoothly transition the current scale towards the desired scale
+        self.scale += (self.desired_scale - self.scale) * self.zoom_speed
+
         tempScreen = pygame.transform.scale(self.screen.copy(), (self.resolution[0] / self.scale, self.resolution[1] / self.scale))
         self.screen = tempScreen
 
+    def followATarget(self, panStrength):
+        if self.isPanning:
+            target_center_x = (self.isFollowing.pos[0] + self.isFollowing.size[0] // 2) + self.offset[0]
+            target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2) + self.offset[1]
+            self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / panStrength
+            self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / panStrength
+        else:
+            target_center_x = (self.isFollowing.pos[0] + self.isFollowing.size[0] // 2)
+            target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2)
+            self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / panStrength
+            self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / panStrength
+
+    def followMultipleTargets(self, panStrength):
+        # Calculate the bounding box of all targets
+        min_x = min(target.pos[0] for target in self.targets) - 100
+        max_x = max(target.pos[0] + target.size[0] for target in self.targets) + 100
+        min_y = min(target.pos[1] for target in self.targets) - 100
+        max_y = max(target.pos[1] + target.size[1] for target in self.targets) + 100
+
+        # Calculate the size of the bounding box
+        box_width = max_x - min_x
+        box_height = max_y - min_y
+
+        
+        # Calculate the required scale to fit the bounding box on the screen
+        required_scale_x = self.resolution[0] / box_width
+        required_scale_y = self.resolution[1] / box_height
+        required_scale = min(required_scale_x, required_scale_y)
+
+        # Calculate the current distance between players (targets)
+        current_distance_x = max_x - min_x
+        current_distance_y = max_y - min_y
+
+        print(box_width, box_height, current_distance_x)
+
+
+        # Check if players are moving away from each other
+        if current_distance_x > box_width // required_scale_x or current_distance_y > box_height // required_scale_y:
+            # Update the camera scale to fit the bounding box
+            self.zoom(required_scale - self.scale)
+        else:
+            # Zoom back in towards the initial scale
+            self.zoom(self.scale - self.scale)  # Equivalent to self.zoom(0)
+
+        # Center the camera on the center of the bounding box
+        center_x = (min_x + max_x) / 2
+        center_y = (min_y + max_y) / 2
+        target_center_x = center_x + self.offset[0]
+        target_center_y = center_y + self.offset[1]
+        self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / panStrength
+        self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / panStrength
+
     def update(self, dt):
         if abs(dt) > 1e-6:
-            pan_strength = self.panStrength / dt
+            panStrength = self.panStrength / dt
         else:
-            pan_strength = self.panStrength
-        if self.isFollowing is not None:
-            if self.isPanning:
-                target_center_x = (self.isFollowing.pos[0] + self.isFollowing.size[0] // 2) + self.offset[0]
-                target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2) + self.offset[1]
-                self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / pan_strength
-                self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / pan_strength
-            else:
-                target_center_x = (self.isFollowing.pos[0] + self.isFollowing.size[0] // 2)
-                target_center_y = (self.isFollowing.pos[1] + self.isFollowing.size[1] // 2)
-                self.trueScroll[0] += ((target_center_x - self.trueScroll[0]) - self.screenSize[0] / 2) / pan_strength
-                self.trueScroll[1] += ((target_center_y - self.trueScroll[1]) - self.screenSize[1] / 2) / pan_strength
+            panStrength = self.panStrength
+            
+        if self.targets:
+            self.followMultipleTargets(panStrength)
+        elif self.isFollowing is not None:
+            self.followATarget(panStrength)
     
     # Renders camera objects and controls scrolling
     def render(self, *camObjects):
-        sorted_camObjects = self.sortCameraObjects(camObjects[0])
+        sorted_camObjects = self.sortCameraObjects(camObjects)
 
         for camObj in sorted_camObjects:
             if camObj.type == "rect":

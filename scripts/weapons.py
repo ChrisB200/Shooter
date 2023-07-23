@@ -13,8 +13,8 @@ class Weapon(Entity):
         self.offset = offset
         self.rotation = 0
         
-    def rotate_at_cursor(self, cursor):
-        cursor.update()
+    def rotate_at_cursor(self, cursor, entity):
+        cursor.update(entity)
         
         # Adjust weapon position by considering camera scrolling
         weapon_x = self.pos[0] - self.game.camera.scroll[0]
@@ -30,9 +30,9 @@ class Weapon(Entity):
 
     def update(self, entity):
         self.pos = get_center(entity.pos, entity.size)
-        self.rotate_at_cursor(entity.cursor)
+        self.rotate_at_cursor(entity.cursor, entity)
 
     def render(self):
         img = blit_rotate(self.current_image, self.pos, self.pivot, self.rotation)
-        return CameraObject(img[0], (img[1].x, img[1].y), 2)
+        self.game.add_camera_object(CameraObject(img[0], (img[1].x, img[1].y), 2))
 

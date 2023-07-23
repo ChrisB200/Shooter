@@ -1,15 +1,9 @@
 # Modules
 import pygame, pickle
 from pygame.constants import *
-from dataclasses import dataclass
 
-@dataclass
-class Controls:
-    moveR: int
-    moveL: int
-    dash: int
-    jump: int
-    pause: int
+# Scripts
+from scripts.framework import Controls
 
 class Settings:
     def __init__(self):
