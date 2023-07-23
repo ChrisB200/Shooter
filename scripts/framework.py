@@ -1,5 +1,5 @@
 # Modules
-import pygame, os
+import pygame, os, json
 from pygame.constants import *
 from dataclasses import dataclass
 
@@ -49,11 +49,11 @@ class Controls:
     pause: int
 
 class Controller:
-    def __init__(self, player, controls:Controls, joystick=0):
-        self.player = player
-        self.game = self.player.game
+    def __init__(self, controls:Controls, joystick):
+        self.player = None
+        self.game = None
         self.controls = controls
-        self.joystick = self.game.joysticks[joystick]
+        self.joystick = joystick
         self.leftStick = [0, 0]
         self.rightStick = [0, 0]
     
@@ -89,9 +89,9 @@ class Controller:
                 else:
                     self.currentState = PAUSED
 class Keyboard:
-    def __init__(self, player, controls:Controls):
-        self.player = player
-        self.game = self.player.game
+    def __init__(self, controls:Controls):
+        self.player = None
+        self.game = None
         self.controls = controls
 
     def update(self, event):
@@ -203,16 +203,32 @@ def setPos(object, pos):
 
 # Loads an image using its location   
 def load_image(path):
-    img = pygame.image.load(BASE_IMG_PATH + path).convert()
+    img = pygame.image.load(path).convert()
     img.set_colorkey((0, 0, 0))
     return img
 
 # Loads a group of images in a alocation
 def load_images(path):
     images = []
-    for img_name in sorted(os.listdir(BASE_IMG_PATH + path)):
+    for img_name in sorted(os.listdir(path)):
         images.append(load_image(path + '/' + img_name))
     return images
+
+def load_animations(base_path, data="data/animation_data.json"):
+    assets = {}
+    with open(data, "rb") as file:
+        data = json.load(file)
+
+    for group in os.listdir(base_path):
+        for folder in os.listdir(base_path+group):
+            for animation in os.listdir(base_path+group+"/"+folder):
+                name = f"{folder}/{animation}"
+                if name in data:
+                    assets[name] = Animation(load_images(f"{base_path}{group}/{folder}/{animation}"), data[name]["img_dur"], data[name]["loop"])
+                else:
+                    assets[name] = Animation(load_images(f"{base_path}{group}/{folder}/{animation}"))
+
+    return assets
 
 # Splits a .csv file into a 2D array
 def load_map(filename):

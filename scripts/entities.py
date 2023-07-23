@@ -139,7 +139,7 @@ class Player(PhysicsEntity):
         # Animation Data
         self.anim_offset = (-3, -5)
         # Weapon
-        self.cursor = UserCursor(self.game, [*pygame.mouse.get_pos()], [9, 9], "cursor")
+        self.cursor = UserCursor(self.game, [*pygame.mouse.get_pos()], [9, 9], "cursor1")
         self.weapon = None
         self.input = None
 
@@ -192,14 +192,14 @@ class Player(PhysicsEntity):
         if self.isDashing == False:
             strength = self.strength[0]
             if self.directions["right"]:   
-                if self.game.isUsingJoystick:
-                    strength *= self.game.leftJoy[0]
+                if type(self.input) == Controller:
+                    strength *= self.input.leftStick[0]
                 self.momentum[0] += strength
                 self.momentum[0] = numCap(self.momentum[0], self.cap[0])
                 self.flip = False
             elif self.directions["left"]:
-                if self.game.isUsingJoystick:
-                    strength *= self.game.leftJoy[0]
+                if type(self.input) == Controller:
+                    strength *= self.input.leftStick[0]
                 self.momentum[0] += -self.strength[0]
                 self.momentum[0] = numCap(self.momentum[0], -self.cap[0])
                 self.flip = True

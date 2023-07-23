@@ -4,7 +4,7 @@ from pygame.constants import *
 from dataclasses import dataclass
 
 # Scripts
-from scripts.framework import Animation, Controller, Keyboard, load_images, controller_check, blit_center, control_deadzone
+from scripts.framework import Animation, Controller, Keyboard, load_images, load_animations, controller_check, blit_center, control_deadzone
 from scripts.entities import Player
 from scripts.camera import Camera, CameraObject
 from scripts.user_interface import Button, Menu, UIElement, Text
@@ -15,27 +15,25 @@ MENU = 0
 PLAYING = 1
 PAUSED = 2
 
+BASE_IMG_PATH = "data/images/"
+
 JUMP_STRENGTH = -7
 
-#1024 768
 class Game:
     def __init__(self):
+        # Initialisation
         pygame.init()
         pygame.font.init()
+        pygame.mixer.init()
         pygame.joystick.init()
         
-         # Main Settings + Scaling
+         # Main Settings
         self.clock = pygame.time.Clock()
         self.settings = Settings.load_from_file("data/settings.dat")
 
-        # Joystick
-        self.isUsingJoystick = False
-        try:
-            self.joysticks = controller_check()
-            self.selectedJoystick = self.joysticks[0]
-        except:
-            self.selectedJoystick = None
-
+        # Joystick        
+        self.inputDevices = []
+        self.detect_inputs()
         # States
         self.currentState = PLAYING
 
@@ -51,38 +49,44 @@ class Game:
         self.tester = Text(200, 200, 400, 400, "undefined", {"fontColour": (255, 255, 255), "opacity": 0, "fontSize": 40})
 
         # Assets
-        self.assets = {
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur=10),
-            'player/run': Animation(load_images('entities/player/run'), img_dur=10),
-            'player/jump': Animation(load_images('entities/player/jump')),
-            'player/slide': Animation(load_images('entities/player/slide')),
-            'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
-            'weapons/idle': Animation(load_images('weapons')),
-            'cursor/idle': Animation(load_images('cursor'))
-        }
+        self.assets = load_animations(BASE_IMG_PATH)
 
         # Entities
-        self.player = Player(self, [0, 0], [8, 13], "player")
-        self.player.weapon = Weapon(self, blit_center(self.player.current_image, self.player.pos), [8, 8], "weapons", (4, -3), 90)
-        self.player.input = Keyboard(self.player, self.settings.keyboard)
-
-        self.player2 = Player(self, [0, 0], [8, 13], "player")
-        self.player2.weapon = Weapon(self, blit_center(self.player2.current_image, self.player2.pos), [8, 8], "weapons", (4, -3), 90)
-        self.player2.input = Controller(self.player2, self.settings.controller, 0)
-
-        self.players = [self.player, self.player2]
+        self.players = []
+        self.create_player([0, 0], Weapon(self, [0, 0], [8, 8], "gun", (4, -3), 90), 0)
+        self.create_player([0, 0], Weapon(self, [0, 0], [8, 8], "gun", (4, -3), 90), 1)
+        
 
         # Map
         self.floor = pygame.Rect(0, 100, 3000, 20)
 
         #self.camera.set_target(self.player, (0, -50))
-        self.camera.set_targets([self.player, self.player2], (0, -50))
+        self.camera.set_targets(self.players, (0, -50))
         self.camera.toggle_panning()
 
         self.prev_time = time.time()
         self.dt = 0
 
         self.cameraObjects = []
+
+    def create_player(self, pos, weapon, input=0):
+        player = Player(self, pos, [8, 13], "player")
+        player.weapon = weapon
+        self.inputDevices[input].player = player
+        self.inputDevices[input].game = self
+        player.input = self.inputDevices[input]
+        self.players.append(player)
+
+    def detect_inputs(self):
+        self.inputDevices = []
+        self.inputDevices.append(Keyboard(self.settings.keyboard))
+
+        try:
+            self.joysticks = controller_check()
+            for controller in self.joysticks:
+                self.inputDevices.append(Controller(self.settings.controller, controller)) 
+        except:
+            print("no controllers detected")
 
     def add_camera_object(self, object, colour=(255, 255, 255), isRect=False, layer=1):
         if isRect:
@@ -99,8 +103,8 @@ class Game:
                 pygame.quit()
                 sys.exit()
             
-            self.player.input.update(event)
-            self.player2.input.update(event)
+            for player in self.players:
+                player.input.update(event)
 
     def paused_events(self):
         for event in pygame.event.get():
@@ -116,21 +120,23 @@ class Game:
             self.pauseMenu.handle(event)
 
     def update(self):
-        self.player.update([self.floor])
-        self.player.update_animation()
-        self.player2.update([self.floor])
-        self.player2.update_animation()
+        for player in self.players:
+            player.update([self.floor])
+            player.update_animation()
         self.camera.update(self.dt)
 
     def render(self):
         self.cameraObjects = []
         self.camera.screen.fill((100, 100, 150))
         self.add_camera_object(self.floor, (0, 255, 0), True)
-        self.player.render()
-        self.player2.render()
+        for player in self.players:
+            player.render()
+    
         self.camera.render(*self.cameraObjects)
-        self.camera.display.blit(self.player.cursor.current_image, self.player.cursor.pos)
-        self.camera.display.blit(self.player2.cursor.current_image, self.player2.cursor.pos)
+
+        for player in self.players:
+            self.camera.display.blit(player.cursor.current_image, player.cursor.pos)
+
         self.tester.render(self.camera.display)
         pygame.display.update()
 
@@ -154,6 +160,3 @@ class Game:
                 self.playing_events()
 
 Game().run()
-
-
-

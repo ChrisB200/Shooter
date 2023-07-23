@@ -130,8 +130,6 @@ class Camera:
         current_distance_x = max_x - min_x
         current_distance_y = max_y - min_y
 
-        print(box_width, box_height, current_distance_x)
-
 
         # Check if players are moving away from each other
         if current_distance_x > box_width // required_scale_x or current_distance_y > box_height // required_scale_y:
