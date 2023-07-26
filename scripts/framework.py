@@ -50,77 +50,14 @@ class Controls:
 
 class Controller:
     def __init__(self, controls:Controls, joystick):
-        self.player = None
-        self.game = None
         self.controls = controls
         self.joystick = joystick
         self.leftStick = [0, 0]
         self.rightStick = [0, 0]
     
-    def update(self, event):
-        self.leftStick = control_deadzone(0.1, self.joystick.get_axis(0), self.joystick.get_axis(1))
-        self.rightStick = control_deadzone(0.1, self.joystick.get_axis(2), self.joystick.get_axis(3))
-
-        if self.leftStick[0] > 0:
-            self.player.directions["right"] = True
-            self.player.directions["left"] = False
-        elif self.leftStick[0] < 0:
-            self.player.directions["left"] = True
-            self.player.directions["right"] = False
-        else:
-            self.player.directions["left"] = False
-            self.player.directions["right"] = False
-
-        if (event.type == pygame.JOYBUTTONDOWN):
-            if event.button == self.controls.jump:
-                if self.player.airTimer < self.player.maxAirTimer:
-                    self.player.momentum[1] = JUMP_STRENGTH
-                if self.player.currentJumps < self.player.totalJumps:
-                    self.player.momentum[1] = JUMP_STRENGTH
-                    self.player.currentJumps += 1
-            if event.button == self.controls.dash and self.player.isDashing == False and self.player.canDash == True and self.player.dashCooldown[2] != True:
-                self.player.momentum[0] = self.player.momentum[0] * self.player.dashStrength
-                self.player.isDashing = True
-                self.player.canDash = False
-                self.player.dashCooldown[2] = True
-            if event.button == self.controls.pause:
-                if self.currentState == PAUSED:
-                    self.currentState = PLAYING
-                else:
-                    self.currentState = PAUSED
 class Keyboard:
     def __init__(self, controls:Controls):
-        self.player = None
-        self.game = None
         self.controls = controls
-
-    def update(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == self.controls.pause:
-                if self.currentState == PAUSED:
-                    self.currentState = PLAYING
-                else:
-                    self.currentState = PAUSED
-            if event.key == self.controls.moveL:
-                self.player.directions["left"] = True
-            if event.key == self.controls.moveR:
-                self.player.directions["right"] = True
-            if event.key == self.controls.jump:
-                if self.player.airTimer < self.player.maxAirTimer:
-                    self.player.momentum[1] = JUMP_STRENGTH
-                if self.player.currentJumps < self.player.totalJumps:
-                    self.player.momentum[1] = JUMP_STRENGTH
-                    self.player.currentJumps += 1
-            if event.key == self.controls.dash and self.player.isDashing == False and self.player.canDash == True and self.player.dashCooldown[2] != True:
-                self.player.momentum[0] = self.player.momentum[0] * self.player.dashStrength
-                self.player.isDashing = True
-                self.player.canDash = False
-                self.player.dashCooldown[2] = True
-        if event.type == pygame.KEYUP:
-            if event.key == self.controls.moveL:
-               self.player.directions["left"] = False
-            if event.key == self.controls.moveR:
-               self.player.directions["right"] = False
 
 # Returns a crop of a selected surface
 def clip(surf, x1, y1, x2, y2):
