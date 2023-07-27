@@ -7,11 +7,12 @@ def tryExcept(dict, key, default=None):
         return default
 
 class UIElement:
-    def __init__(self, x, y, width, height, style):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
+    def __init__(self, x, y, width, height, parent, style):
+        self.parent = parent
+        self.x = self.percentage(x, "x")
+        self.y = self.percentage(y, "y")
+        self.width = self.percentage(width, "width")
+        self.height = self.percentage(height, "height")
         self.image = tryExcept(style, "image")
         self.text = tryExcept(style, "text", "")
         self.font = tryExcept(style, "font")
@@ -27,7 +28,35 @@ class UIElement:
     @property
     def size(self):
         return (self.width, self.height)
-
+    
+    def percentage(self, percent, parameter):
+        if percent > 1:
+            return percent
+        else:
+            if parameter == "width":
+                return self.parent.width * (percent)
+            elif parameter == "height":
+                return self.parent.height * (percent)
+            elif parameter == "x":
+                return self.parent.x * (percent)
+            elif parameter == "y":
+                return self.parent.y * (percent)
+            
+    def dock(self, xDock: str, yDock: str, offset: tuple[int, int] = (0, 0)):
+        if xDock == "left":
+            self.x = self.parent.x + offset[0]
+        elif xDock == "center":
+            self.x = self.parent.x + (self.parent.width // 2) - (self.width // 2) + offset[0]
+        elif xDock == "right":
+            self.x = self.parent.x + (self.parent.width - self.width + offset[0])
+            
+        if yDock == "top":
+            self.y = self.parent.y + offset[1]
+        elif yDock == "center":
+            self.y = self.parent.y + (self.parent.height // 2) - (self.height // 2) + offset[1]
+        elif yDock == "bottom":
+            self.y = self.parent.y + (self.parent.height - self.height + offset[1])
+    
     def render(self, surf):
         # Creates the text
         font = pygame.font.Font(None, self.fontSize)
@@ -52,8 +81,8 @@ class UIElement:
         pass
 
 class Button(UIElement):
-    def __init__(self, x, y, width, height, style, action=None):
-        super().__init__(x, y, width, height, style)
+    def __init__(self, x, y, width, height, parent, style, action=None):
+        super().__init__(x, y, width, height, parent, style)
         self.action = action
 
     def handle_event(self, event):
@@ -66,8 +95,8 @@ class Button(UIElement):
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
 class Text(UIElement):
-    def __init__(self, x, y, width, height, text, style):
-        super().__init__(x, y, width, height, style)
+    def __init__(self, x, y, width, height, parent, text, style):
+        super().__init__(x, y, width, height, parent, style)
         self.text = text
         self.font = tryExcept(style, "font")
         self.fontSize = tryExcept(style, "fontSize", 12)
@@ -80,7 +109,6 @@ class Text(UIElement):
 
         surf.blit(textSurface, self.pos)
             
-
 class Menu():
     def __init__(self, x, y, width, height):
         self.x = x

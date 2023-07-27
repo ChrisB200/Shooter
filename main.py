@@ -35,11 +35,12 @@ class Game:
         # States
         self.currentState = PLAYING
         # Menus
-        self.pauseMenu = Menu(0, 0, self.settings.width, self.settings.height)
-        bg = UIElement(self.settings.width//2-250, self.settings.height//2-250, 500, 500, {"bgColour": (255, 255, 255), "opacity": 5})
-        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, {"bgColour": (255, 0, 0), "text": "END"}, lambda: (self.settings.save_to_file("data/settings.dat"), pygame.quit()))
+        self.pauseMenu = Menu(0, 0, self.camera.resolution[0], self.camera.resolution[1])
+        bg = UIElement(0, 0, 0.5, 0.5, self.pauseMenu, {"bgColour": (255, 255, 255), "opacity": 5})
+        bg.dock("center", "center")
+        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, bg, {"bgColour": (255, 0, 0), "text": "END"}, lambda: (self.settings.save_to_file("data/settings.dat"), pygame.quit()))
         self.pauseMenu.add_elements(bg, end)
-        self.tester = Text(200, 200, 400, 400, "undefined", {"fontColour": (255, 255, 255), "opacity": 0, "fontSize": 40})
+        self.tester = Text(200, 200, 400, 400, self.pauseMenu, "undefined", {"fontColour": (255, 255, 255), "opacity": 0, "fontSize": 40})
         # Assets
         self.assets = load_animations(BASE_IMG_PATH)
         # Entities
@@ -86,6 +87,12 @@ class Game:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == self.settings.keyboard.pause:
+                    if self.currentState == PAUSED:
+                        self.currentState = PLAYING
+                    else:
+                        self.currentState = PAUSED
             
             for player in self.players:
                 player.input_events(event)
