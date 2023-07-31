@@ -1,4 +1,7 @@
 import pygame
+from pygame.constants import *
+
+from scripts.framework import looping
 
 def tryExcept(dict, key, default=None):
     try:
@@ -42,7 +45,7 @@ class UIElement:
             elif parameter == "y":
                 return self.parent.y * (percent)
             
-    def dock(self, xDock: str, yDock: str, offset: tuple[int, int] = (0, 0)):
+    def dock(self, xDock: str = "center", yDock: str = "center", offset: tuple[int, int] = (0, 0)):
         if xDock == "left":
             self.x = self.parent.x + offset[0]
         elif xDock == "center":
@@ -81,15 +84,41 @@ class UIElement:
         pass
 
 class Button(UIElement):
-    def __init__(self, x, y, width, height, parent, style, action=None):
+    def __init__(self, x, y, width, height, parent, style, activeStyle={}, tabindex=None, action=None):
         super().__init__(x, y, width, height, parent, style)
         self.action = action
+        self.active = False
+        self.activeStyle = activeStyle
+        
+        if self.parent is not None:
+            interactables = [i for i in self.parent.uiElements if type(i) == Button]
+            length = len(interactables)
+            self.tabindex = length
+        else:
+            if self.tabindex is not None:
+                self.tabindex = tabindex
+            else:
+                self.tabindex = 0
+                
+    def isActive(self):
+        if self.active == True:
+            self.image = tryExcept(self.activeStyle, "image", self.image)
+            self.text = tryExcept(self.activeStyle, "text", self.text)
+            self.font = tryExcept(self.activeStyle, "font", self.font)
+            self.fontSize = tryExcept(self.activeStyle, "fontSize", self.fontSize)
+            self.fontColour = tryExcept(self.activeStyle, "fontColour", self.fontColour)
+            self.bgColour = tryExcept(self.activeStyle, "bgColour", self.bgColour)
+            self.opacity = tryExcept(self.activeStyle, "opacity", self.opacity)
 
     def handle_event(self, event):
+        self.isActive()
         mouse_x, mouse_y = pygame.mouse.get_pos()
         if self.x <= mouse_x <= self.x + self.width and self.y <= mouse_y <= self.y + self.height:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
             if event.type == pygame.MOUSEBUTTONDOWN:
+                self.action()
+        elif self.active == True:
+            if event.type == pygame.JOYBUTTONDOWN:
                 self.action()
         else:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -116,6 +145,7 @@ class Menu():
         self.width = width
         self.height = height
         self.uiElements = []
+        self.currentIndex = 0
 
     def add_elements(self, *args):
         for element in args:
@@ -126,5 +156,35 @@ class Menu():
             element.render(surf)
 
     def handle(self, event):
+        buttons = [element for element in self.uiElements if type(element) == Button]
+        
+        if event.type == pygame.JOYAXISMOTION:
+            if event.axis == 1:
+                if event.value < -0.5:
+                    oldIndex = self.currentIndex
+                    self.currentIndex = looping(buttons, self.currentIndex, 1)
+                    self.set_active(oldIndex)
+                elif event.value > 0.5:
+                    oldIndex = self.currentIndex
+                    self.currentIndex = looping(buttons, self.currentIndex, -1)
+                    self.set_active(oldIndex)
+        if event.type == pygame.KEYDOWN:
+            if event.key == K_UP:
+                oldIndex = self.currentIndex
+                self.currentIndex = looping(buttons, self.currentIndex, 1)
+                self.set_active(oldIndex)
+            elif event.key == K_DOWN:
+                oldIndex = self.currentIndex
+                self.currentIndex = looping(buttons, self.currentIndex, -1)
+                self.set_active(oldIndex)
+        
         for element in self.uiElements:
             element.handle_event(event)
+            
+    def set_active(self, oldIndex):
+       for element in self.uiElements:
+           if type(element) == Button:
+                if self.currentIndex == element.tabindex:
+                    element.active = True
+                elif oldIndex == element.tabindex:
+                    element.active = False

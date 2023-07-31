@@ -178,3 +178,13 @@ def load_map(filename):
         temp = grid[count][len(row)-1].split("\n")
         grid[count][len(row)-1] = temp[0]
     return grid
+
+def looping(list, index, increment):
+    length = len(list) - 1
+    if index + increment > length:
+        return 0
+    elif index + increment < length:
+        return length
+    else:
+        return index + increment
+    

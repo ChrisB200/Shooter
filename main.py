@@ -38,8 +38,9 @@ class Game:
         self.pauseMenu = Menu(0, 0, self.camera.resolution[0], self.camera.resolution[1])
         bg = UIElement(0, 0, 0.5, 0.5, self.pauseMenu, {"bgColour": (255, 255, 255), "opacity": 5})
         bg.dock("center", "center")
-        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, bg, {"bgColour": (255, 0, 0), "text": "END"}, lambda: (self.settings.save_to_file("data/settings.dat"), pygame.quit()))
-        self.pauseMenu.add_elements(bg, end)
+        end = Button(bg.x+bg.width//2-50, bg.y+bg.height//2-50, 100, 100, self.pauseMenu, {"bgColour": (255, 0, 0), "text": "END"},{"bgColour": (0, 255, 0)},0, lambda: (self.settings.save_to_file("data/settings.dat"), pygame.quit()))
+        end2 = Button(bg.x+bg.width//2-50, bg.y+bg.height//2+50, 100, 100, self.pauseMenu, {"bgColour": (255, 0, 0), "text": "END"},{"bgColour": (0, 255, 0)},1, lambda: (self.settings.save_to_file("data/settings.dat"), pygame.quit()))
+        self.pauseMenu.add_elements(bg, end, end2)
         self.tester = Text(200, 200, 400, 400, self.pauseMenu, "undefined", {"fontColour": (255, 255, 255), "opacity": 0, "fontSize": 40})
         # Assets
         self.assets = load_animations(BASE_IMG_PATH)
@@ -140,7 +141,7 @@ class Game:
     def run(self):
         self.start()
         while True:
-            pygame.mouse.set_visible(False)
+            
             self.clock.tick(self.settings.targetFPS)
             now = time.time()
             self.dt = (now - self.prev_time) * self.settings.targetFPS
@@ -149,10 +150,12 @@ class Game:
             if self.currentState == MENU:
                 pass
             elif self.currentState == PAUSED:
+                pygame.mouse.set_visible(True)
                 self.paused_events()
                 self.pauseMenu.render(self.camera.display)
                 pygame.display.update()
             elif self.currentState == PLAYING:
+                pygame.mouse.set_visible(False)
                 self.update()
                 self.render()
                 self.playing_events()
