@@ -10,10 +10,8 @@ class CameraObject():
         self.entity = entity
         if isinstance(entity, pygame.Rect):
             self.pos = [entity.x, entity.y]
-            self.type = "rect"
         elif isinstance(entity, pygame.Surface):
             self.pos = pos
-            self.type = "surface"
         self.layer = layer
         self.colour = colour
 
@@ -53,12 +51,13 @@ class Camera:
 
     # Sets the render order
     def set_renderOrder(self, order):
-        if order == "x":
-            return {"x": True, "y": False, "layer": False}
-        elif order == "y":
-            return {"x": False, "y": True, "layer": False}
-        else:
-            return {"x": False, "y": False, "layer": True}
+        match order:
+            case "x":
+                return {"x": True, "y": False, "layer": False}
+            case "y":
+                return {"x": False, "y": True, "layer": False}
+            case "layer":
+                return {"x": False, "y": False, "layer": True}
 
     # Sets a camera target
     def set_target(self, target, offset=(0, 0)):
@@ -75,12 +74,15 @@ class Camera:
 
     # Sorts camera objects via layer, x position, or y position
     def sortCameraObjects(self, cameraObjects):
-        if self.renderOrder["x"] == True:
-            return sorted(cameraObjects, key=lambda camObj: camObj.entity.x)
-        elif self.renderOrder["y"] == True:
-            return sorted(cameraObjects, key=lambda camObj: camObj.entity.y)
-        else:
-            return sorted(cameraObjects, key=lambda camObj: camObj.layer)
+        match self.renderOrder:
+            case {"x": True}:
+                return sorted(cameraObjects, key=lambda camObj: camObj.entity.x)
+            case {"y": True}:
+                return sorted(cameraObjects, key=lambda camObj: camObj.entity.y)
+            case {"layer": True}:
+                return sorted(cameraObjects, key=lambda camObj: camObj.layer)
+                
+
 
     
     # Allows for zooming functionality
@@ -163,14 +165,13 @@ class Camera:
         sorted_camObjects = self.sortCameraObjects(camObjects)
 
         for camObj in sorted_camObjects:
-            if camObj.type == "rect":
-                tempRect = pygame.Rect(camObj.entity.x - self.scroll[0], camObj.entity.y - self.scroll[1], camObj.entity.width, camObj.entity.height) 
-                pygame.draw.rect(self.screen, camObj.colour, tempRect)
-            elif camObj.type == "surface":
-                self.screen.blit(camObj.entity, ((camObj.pos[0] - self.trueScroll[0]), (camObj.pos[1] - self.trueScroll[1])))
-            else:
-                raise ValueError("Unsupported entity type.")
+            match type(camObj.entity):
+                case pygame.Rect:
+                    tempRect = pygame.Rect(camObj.entity.x - self.scroll[0], camObj.entity.y - self.scroll[1], camObj.entity.width, camObj.entity.height) 
+                    pygame.draw.rect(self.screen, camObj.colour, tempRect)
+                case pygame.Surface:
+                    self.screen.blit(camObj.entity, ((camObj.pos[0] - self.trueScroll[0]), (camObj.pos[1] - self.trueScroll[1])))
 
-         # Apply zoom factor to the screen
+        # Apply zoom factor to the screen
         self.display.blit(pygame.transform.scale(self.screen, self.resolution), (0, 0))
 
