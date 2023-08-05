@@ -142,7 +142,7 @@ class Game:
 
     def run(self):
         while True:
-            pygame.mouse.set_visible(False)``
+            pygame.mouse.set_visible(False)
             self.clock.tick(self.settings.targetFPS)
             now = time.time()
             self.dt = (now - self.prev_time) * self.settings.targetFPS
