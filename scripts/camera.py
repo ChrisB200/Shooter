@@ -81,8 +81,6 @@ class Camera:
                 return sorted(cameraObjects, key=lambda camObj: camObj.entity.y)
             case {"layer": True}:
                 return sorted(cameraObjects, key=lambda camObj: camObj.layer)
-                
-
 
     
     # Allows for zooming functionality

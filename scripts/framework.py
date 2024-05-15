@@ -1,63 +1,10 @@
 # Modules
-import pygame, os, json
+import pygame
 from pygame.constants import *
-from dataclasses import dataclass
-
-BASE_IMG_PATH = "data/images/"
 
 MENU = 0
 PLAYING = 1
 PAUSED = 2
-JUMP_STRENGTH = -7
-
-# Animation System
-class Animation:
-    def __init__(self, images, img_dur=0.2, loop=True):
-        self.images = images
-        self.loop = loop
-        self.img_duration = img_dur
-        self.done = False
-        self.frame = 0
-        self.time_elapsed = 0
-    
-    # Returns a copy of itself
-    def copy(self):
-        return Animation(self.images, self.img_duration, self.loop)
-    
-    # Updates the current frame (uses deltatime)
-    def update(self, dt):
-        self.time_elapsed += dt
-        while self.time_elapsed >= self.img_duration:
-            self.time_elapsed -= self.img_duration
-            if self.loop:
-                self.frame = (self.frame + 1) % len(self.images)
-            else:
-                self.frame = min(self.frame + 1, len(self.images) - 1)
-                if self.frame == len(self.images) - 1:
-                    self.done = True
-    
-    # Returns the current frame
-    def img(self):
-        return self.images[self.frame]
-    
-@dataclass
-class Controls:
-    moveR: int
-    moveL: int
-    dash: int
-    jump: int
-    pause: int
-
-class Controller:
-    def __init__(self, controls:Controls, joystick):
-        self.controls = controls
-        self.joystick = joystick
-        self.leftStick = [0, 0]
-        self.rightStick = [0, 0]
-    
-class Keyboard:
-    def __init__(self, controls:Controls):
-        self.controls = controls
 
 # Returns a crop of a selected surface
 def clip(surf, x1, y1, x2, y2):
@@ -65,6 +12,7 @@ def clip(surf, x1, y1, x2, y2):
     img = surf.subsurface(clip)
     return img
 
+# Rotates an image arount a pivot position
 def blit_rotate(image, pos, originPos, angle):
     image_rect = image.get_rect(topleft = (pos[0] - originPos[0], pos[1]-originPos[1]))
     offset_center_to_pivot = pygame.math.Vector2(pos) - image_rect.center
@@ -89,15 +37,6 @@ def get_center(pos, size):
     x = pos[0] + int(size[0] / 2)
     y = pos[1] + int(size[1] / 2)
     return [x,y]
-
-def control_deadzone(deadzone, *axes):
-    newAxes = []
-    for axis in axes:
-        if abs(axis) < deadzone:
-            axis = 0
-        newAxes.append(axis)
-
-    return newAxes
 
 # Flips an image
 def flip_img(img,boolean=True, boolean_2=False):
@@ -124,48 +63,10 @@ def collision_test(object_1,object_list):
             collision_list.append(obj)
     return collision_list
 
-# Checks for controllers and initialises them
-def controller_check():
-    joysticks = []
-    for i in range(pygame.joystick.get_count()):
-        joystick = pygame.joystick.Joystick(i)
-        joystick.init()
-        joysticks.append(joystick)
-    return joysticks
-
 # Sets an objects position to another position
 def setPos(object, pos):
     object.pos[0] = pos[0]
     object.pos[1] = pos[1]
-
-# Loads an image using its location   
-def load_image(path):
-    img = pygame.image.load(path).convert()
-    img.set_colorkey((0, 0, 0))
-    return img
-
-# Loads a group of images in a alocation
-def load_images(path):
-    images = []
-    for img_name in sorted(os.listdir(path)):
-        images.append(load_image(path + '/' + img_name))
-    return images
-
-def load_animations(base_path, data="data/animation_data.json"):
-    assets = {}
-    with open(data, "rb") as file:
-        data = json.load(file)
-
-    for group in os.listdir(base_path):
-        for folder in os.listdir(base_path+group):
-            for animation in os.listdir(base_path+group+"/"+folder):
-                name = f"{folder}/{animation}"
-                if name in data:
-                    assets[name] = Animation(load_images(f"{base_path}{group}/{folder}/{animation}"), data[name]["img_dur"], data[name]["loop"])
-                else:
-                    assets[name] = Animation(load_images(f"{base_path}{group}/{folder}/{animation}"))
-
-    return assets
 
 # Splits a .csv file into a 2D array
 def load_map(filename):
@@ -179,6 +80,7 @@ def load_map(filename):
         grid[count][len(row)-1] = temp[0]
     return grid
 
+# Resets value to 0 if goes over a specific index
 def looping(list, index, increment):
     length = len(list) - 1
     if index + increment > length:
@@ -187,4 +89,3 @@ def looping(list, index, increment):
         return length
     else:
         return index + increment
-    

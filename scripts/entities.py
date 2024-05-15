@@ -3,7 +3,9 @@ import pygame, math
 
 # Scripts
 from scripts.camera import CameraObject, Camera
-from scripts.framework import Animation, Controller, Keyboard, get_center, collision_test, numCap, control_deadzone
+from scripts.animation import Animation
+from scripts.input import Controller, Keyboard
+from scripts.framework import get_center, collision_test, numCap
 
 # Entity Class
 class Entity:
@@ -22,6 +24,8 @@ class Entity:
         self.anim_offset: tuple[int, int] = (0, 0)
         self.flip: bool = False
         self.set_action("idle")
+        # Rect
+        self.rect: pygame.Rect = pygame.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
 
     @property
     def x(self):
@@ -55,6 +59,12 @@ class Entity:
             pos = get_center(pos, self.size)
         radians = math.atan2(point[1] - pos[1], point[0] - pos[0])
         return -math.degrees(radians) + offset
+    
+    # Gets the center
+    def get_center(self):
+        x = self.pos[0] - (self.size[0] // 2)
+        y = self.pos[1] - (self.size[1] // 2)
+        return [x, y]
          
 
     # Gets the distance between an entity and a point
@@ -83,7 +93,6 @@ class PhysicsEntity(Entity):
         # Parameters
         super().__init__(pos, size, tag, assets)
         # Rects and Collisions
-        self.rect: pygame.Rect = pygame.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
         self.collisions: dict[str, bool] = {'bottom': False, 'top': False, 'left': False, 'right': False}
 
     # Checks for collisions based on movement direction
@@ -118,8 +127,9 @@ class PhysicsEntity(Entity):
     
 # Player Class
 class Player(PhysicsEntity):
-    def __init__(self, pos:list[int, int], size:list[int, int], tag:str, assets):
+    def __init__(self, id:int, pos:list[int, int], size:list[int, int], tag:str, assets):
         # Parameters
+        self.id = id
         super().__init__(pos, size, tag, assets)
         # Movement Data
         self.momentum: list[float, float] = [0, 0] # [momentumX, momentumY]
@@ -143,25 +153,49 @@ class Player(PhysicsEntity):
         self.cursor: UserCursor = UserCursor([*pygame.mouse.get_pos()], [9, 9], "cursor1", self.assets)
         self.weapon = None
         self.input: Keyboard | Controller = None
+        # Player Data
+        self.health = 100
+        self.isAlive = True
 
     # Returns the position
     @property
     def get_pos(self):
         return self.pos
     
+    def apply_damage(self, entity, damageEntity):
+        entity.health -= damageEntity.damage
+        damageEntity.remove = True
+        print(f"Damage applied on player {entity.id}")
+        print(entity.health)
+        if self.health <= 0:
+            self.isAlive = False
+            print("Should be dead")
+    
+    def check_entity_collisions(self, players):
+        # Weapon updates
+        for bullet in self.weapon.bullets:
+            for player in players:
+                if player.id != self.id:
+                    bullet.check_collision_on_entity(player, lambda entity=player, damageEntity=bullet: self.apply_damage(entity, damageEntity))
+
+
+    
+    # Gets camera objects of player, weapon and weapon bullets 
     def render(self):
-        retVal = super().render()
+        playerSprite = super().render()
         if self.weapon is not None:
-            return retVal, self.weapon.render()
+            return playerSprite, self.weapon.render()
         else:
-            return retVal
-        
+            return playerSprite
+    
+    # Handles player input
     def input_events(self, event):
         if type(self.input) == Controller:
             self.controller_input(event)
         else:
             self.keyboard_input(event)
-        
+    
+    # Handles keyboard input
     def keyboard_input(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == self.input.controls.moveL:
@@ -184,11 +218,12 @@ class Player(PhysicsEntity):
                 self.directions["left"] = False
             if event.key == self.input.controls.moveR:
                 self.directions["right"] = False
-        
-    def controller_input(self, event):
-        self.input.leftStick = control_deadzone(0.1, self.joystick.get_axis(0), self.joystick.get_axis(1))
-        self.input.rightStick = control_deadzone(0.1, self.joystick.get_axis(2), self.joystick.get_axis(3))
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == self.input.controls.shoot and self.weapon is not None:
+                self.weapon.shoot(self.cursor)
 
+    # Handles controller input
+    def controller_input(self, event):
         if self.input.leftStick[0] > 0:
             self.directions["right"] = True
             self.directions["left"] = False
@@ -212,7 +247,7 @@ class Player(PhysicsEntity):
                 self.canDash = False
                 self.dashCooldown[2] = True
         
-    # input player movement and states
+    # Input player movement and states
     def update(self, tiles, dt, camera):
         if self.airTimer < self.maxAirTimer:
             self.isGrounded = True
@@ -293,6 +328,9 @@ class Player(PhysicsEntity):
         self.cursor.update(self, camera)
         if self.weapon:
             self.weapon.update(self, camera)
+
+        # Input updates
+        self.input.update()
 
 # Object Class TEMPORARY            
 class Object:
